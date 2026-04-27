@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Manager | Quarkus</title>
+  <meta name="description" content="Kelola produk dengan mudah menggunakan Quarkus REST API." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface2:  #22263a;
+      --border:    #2e3250;
+      --accent:    #6c63ff;
+      --accent2:   #a78bfa;
+      --danger:    #f87171;
+      --warning:   #fbbf24;
+      --success:   #34d399;
+      --text:      #e2e8f0;
+      --muted:     #8892b0;
+      --radius:    14px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 32px rgba(108, 99, 255, 0.08);
+      transition: border-color 0.3s;
+    }
+
+    .card.edit-mode {
+      border-color: var(--warning);
+      box-shadow: 0 4px 32px rgba(251, 191, 36, 0.12);
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent2);
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.3s;
+    }
+
+    .card.edit-mode h2 { color: var(--warning); }
+
+    .form-row {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      flex: 1;
+      min-width: 160px;
+    }
+
+    label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 0.65rem 0.9rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: var(--accent); }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      transition: opacity 0.2s, transform 0.15s, background 0.3s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    #btn-submit {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      padding: 0.65rem 1.4rem;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    #btn-submit.update-mode {
+      background: linear-gradient(135deg, #d97706, var(--warning));
+    }
+
+    #btn-submit:hover { opacity: 0.88; }
+
+    #btn-cancel {
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 0.65rem 1rem;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      display: none;
+    }
+
+    #btn-cancel:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      top: 1.2rem;
+      right: 1.2rem;
+      padding: 0.7rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: #064e3b; color: var(--success); border: 1px solid var(--success); }
+    #toast.error   { background: #450a0a; color: var(--danger);  border: 1px solid var(--danger); }
+    #toast.info    { background: #1e1b4b; color: var(--accent2); border: 1px solid var(--accent); }
+
+    /* ── Custom Confirm Modal ── */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    #modal-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      transform: scale(0.92) translateY(12px);
+      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+
+    #modal-overlay.show #modal {
+      transform: scale(1) translateY(0);
+    }
+
+    #modal .modal-icon {
+      font-size: 2.4rem;
+      margin-bottom: 0.8rem;
+    }
+
+    #modal h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    #modal p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 1.6rem;
+      line-height: 1.6;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.7rem;
+      justify-content: center;
+    }
+
+    #modal-cancel {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    #modal-cancel:hover { border-color: var(--muted); }
+
+    #modal-confirm {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      background: rgba(248,113,113,0.15);
+      color: var(--danger);
+      border: 1px solid rgba(248,113,113,0.4);
+      font-size: 0.9rem;
+    }
+
+    #modal-confirm:hover { background: rgba(248,113,113,0.25); }
+
+    /* ── Table Card ── */
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .table-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent2);
+    }
+
+    #product-count {
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.2rem 0.7rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      text-align: left;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr { transition: background 0.15s; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody tr.editing { background: rgba(251, 191, 36, 0.06); }
+
+    tbody td {
+      padding: 0.85rem 1rem;
+      font-size: 0.93rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody td.price {
+      color: var(--success);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .action-cell { display: flex; gap: 0.4rem; }
+
+    .btn-edit {
+      background: rgba(167, 139, 250, 0.12);
+      color: var(--accent2);
+      border: 1px solid rgba(167, 139, 250, 0.3);
+      padding: 0.35rem 0.8rem;
+      font-size: 0.82rem;
+      border-radius: 6px;
+    }
+
+    .btn-edit:hover { background: rgba(167, 139, 250, 0.22); }
+
+    .btn-delete {
+      background: rgba(248, 113, 113, 0.12);
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      padding: 0.35rem 0.8rem;
+      font-size: 0.82rem;
+      border-radius: 6px;
+    }
+
+    .btn-delete:hover { background: rgba(248, 113, 113, 0.22); }
+
+    /* ── Empty state ── */
+    #empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+      display: none;
+    }
+
+    #empty-state svg { opacity: 0.3; margin-bottom: 0.8rem; }
+    #empty-state p { font-size: 0.9rem; }
+
+    /* skeleton */
+    .skeleton td { padding: 0.85rem 1rem; }
+    .skel {
+      height: 14px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  </style>
+</head>
+<body>
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- Custom Delete Confirm Modal -->
+  <div id="modal-overlay">
+    <div id="modal">
+      <div class="modal-icon">🗑️</div>
+      <h3>Hapus Produk?</h3>
+      <p>Apakah Anda yakin ingin menghapus produk ini?<br/>Tindakan ini tidak dapat dibatalkan.</p>
+      <div class="modal-actions">
+        <button id="modal-cancel">Batal</button>
+        <button id="modal-confirm">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>⚡ Product Manager</h1>
+      <p>Powered by Quarkus REST API</p>
+    </header>
+
+    <!-- Form -->
+    <div class="card" id="form-card">
+      <h2 id="form-title">➕ Tambah Produk</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="input-name">Nama Produk</label>
+          <input id="input-name" type="text" placeholder="cth: Laptop Gaming" />
+        </div>
+        <div class="form-group">
+          <label for="input-price">Harga (Rp)</label>
+          <input id="input-price" type="number" min="0" placeholder="cth: 15000000" />
+        </div>
+        <button id="btn-cancel" onclick="cancelEdit()">✕ Batal</button>
+        <button id="btn-submit" onclick="submitForm()">Tambah</button>
+      </div>
+    </div>
+
+    <!-- List -->
+    <div class="card">
+      <div class="table-header">
+        <h2>📦 Daftar Produk</h2>
+        <span id="product-count">0 produk</span>
+      </div>
+
+      <table id="product-table">
+        <thead>
+          <tr>
+            <th>#ID</th>
+            <th>Nama</th>
+            <th>Harga</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="product-list"></tbody>
+      </table>
+
+      <div id="empty-state">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 12h.01" />
+        </svg>
+        <p>Belum ada produk. Silakan tambahkan produk baru.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
