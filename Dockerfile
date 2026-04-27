@@ -1,13 +1,27 @@
+# Tahap 1: Build
 FROM eclipse-temurin:21-jdk AS build
-COPY --chown=1000 . /home/node/project
-WORKDIR /home/node/project
 
+# Set working directory langsung di root agar tidak bentrok dengan user 'node'
+WORKDIR /app
+
+# Copy semua file project
+COPY . .
+
+# Pastikan file mvnw bisa dieksekusi dengan akses root
+USER root
 RUN chmod +x mvnw
+
+# Jalankan build
 RUN ./mvnw package -DskipTests -Dquarkus.package.type=fast-jar
 
+# Tahap 2: Runtime
 FROM eclipse-temurin:21-jre
-ENV LANGUAGE='en_US:en'
-COPY --from=build /home/node/project/target/quarkus-app/ /deployments/
+WORKDIR /deployments
+
+# Copy hasil build dari tahap sebelumnya
+COPY --from=build /app/target/quarkus-app/ .
+
 EXPOSE 8080
-USER 1000
-ENTRYPOINT ["java", "-jar", "/deployments/quarkus-run.jar"]
+
+# Jalankan aplikasi
+ENTRYPOINT ["java", "-jar", "quarkus-run.jar"]
