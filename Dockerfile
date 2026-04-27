@@ -2,11 +2,13 @@
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 
-# Copy semua (sekarang src, pom.xml, dll sudah sejajar)
+# Copy semua file dari root repository
 COPY . .
 
-# Hapus karakter Windows (\r) dari mvnw dan beri izin eksekusi
-RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
+# Pastikan kita ada di folder yang benar dan file mvnw ada
+RUN ls -la && \
+    sed -i 's/\r$//' ./mvnw && \
+    chmod +x ./mvnw
 
 # Jalankan build
 RUN ./mvnw package -DskipTests -Dquarkus.package.type=fast-jar
