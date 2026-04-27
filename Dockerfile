@@ -1,19 +1,13 @@
-# Tahap 1: Build
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 
-# Copy semua file dari root repository
+# Sekarang karena .dockerignore sudah benar, semua file akan masuk
 COPY . .
 
-# Pastikan kita ada di folder yang benar dan file mvnw ada
-RUN ls -la && \
-    sed -i 's/\r$//' ./mvnw && \
-    chmod +x ./mvnw
-
-# Jalankan build
+# Beri izin dan build
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 RUN ./mvnw package -DskipTests -Dquarkus.package.type=fast-jar
 
-# Tahap 2: Runtime
 FROM eclipse-temurin:21-jre
 WORKDIR /deployments
 COPY --from=build /app/target/quarkus-app/ .
