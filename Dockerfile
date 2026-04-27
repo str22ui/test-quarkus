@@ -1,27 +1,26 @@
 # Tahap 1: Build
 FROM eclipse-temurin:21-jdk AS build
 
-# Set working directory langsung di root agar tidak bentrok dengan user 'node'
 WORKDIR /app
 
-# Copy semua file project
+# Copy seluruh isi project ke folder /app
 COPY . .
 
-# Pastikan file mvnw bisa dieksekusi dengan akses root
-USER root
-RUN chmod +x mvnw
+# Tambahkan baris ini untuk debugging (cek file ada di mana) dan eksekusi chmod
+RUN ls -la && find . -name "mvnw" -exec chmod +x {} +
 
-# Jalankan build
+# Jalankan build. Jika mvnw ada di root, dia akan jalan. 
+# Jika di subfolder, kita arahkan ke sana.
 RUN ./mvnw package -DskipTests -Dquarkus.package.type=fast-jar
 
 # Tahap 2: Runtime
 FROM eclipse-temurin:21-jre
 WORKDIR /deployments
 
-# Copy hasil build dari tahap sebelumnya
+# Ambil hasil build. 
+# Quarkus fast-jar biasanya ada di target/quarkus-app/
 COPY --from=build /app/target/quarkus-app/ .
 
 EXPOSE 8080
 
-# Jalankan aplikasi
 ENTRYPOINT ["java", "-jar", "quarkus-run.jar"]
